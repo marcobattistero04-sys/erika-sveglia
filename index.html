@@ -4,9 +4,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#C85F0A">
+<meta name="theme-color" content="#0078D4">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sveglie">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -19,152 +19,257 @@ window.ERIKA_CONFIG = {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-:root {
-  --brand:#C85F0A; --brand-light:#FFF0E6; --brand-mid:#E8701A;
-  --bg:#F2EFE9; --card:#FFFFFF; --card2:#FAF8F5;
-  --border:#E0DBD4; --border2:#C8C2BB;
-  --text:#1A1410; --dim:#6B6058; --hint:#A89F96;
+:root{
+  --brand:#0078D4; --brand-dark:#005A9E; --brand-light:#EBF3FB; --brand-mid:#2B88D8;
+  --bg:#F3F6FA; --card:#FFFFFF; --card2:#F8FAFC;
+  --border:#DCE3ED; --border2:#B8C4D4;
+  --text:#1A2332; --dim:#4A5568; --hint:#8FA3BF;
   --red:#C8291E; --green:#1A7A42; --amber:#A86200;
   --red-bg:#FEF0EE; --green-bg:#EEF8F2; --amber-bg:#FFF8E6;
+  --blue-bg:#EBF3FB;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bot:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;overscroll-behavior:none}
-#app{display:flex;flex-direction:column;height:100%}
+#app{display:flex;flex-direction:column;height:100%;overflow:hidden}
 
 /* Topbar */
-#topbar{background:var(--brand);padding:calc(var(--safe-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
-.logo-sq{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0}
+#topbar{
+  background:var(--brand);
+  padding:calc(var(--safe-top) + 10px) 16px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;z-index:100;
+}
+.logo-sq{
+  width:34px;height:34px;border-radius:8px;
+  background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.logo-sq svg{width:20px;height:20px;stroke:#fff;stroke-width:1.5;fill:none}
 #topbar-info{margin-left:10px}
-#topbar-title{font-size:16px;font-weight:700;color:#fff}
+#topbar-title{font-size:16px;font-weight:700;color:#fff;line-height:1.2}
 #topbar-sub{font-size:10px;color:rgba(255,255,255,.7)}
-#clock{font-size:18px;font-weight:600;color:#fff;letter-spacing:.5px}
+#clock{font-size:18px;font-weight:500;color:#fff;letter-spacing:.5px;font-variant-numeric:tabular-nums}
 
-/* Content */
-#content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+/* Content area — panels stack here */
+#content{
+  flex:1;position:relative;overflow:hidden;
+}
+
+/* ALL panels: absolute, full size, fade in/out */
+.panel{
+  position:absolute;inset:0;
+  opacity:0;pointer-events:none;
+  transition:opacity .22s ease;
+  background:var(--bg);
+  overflow-y:auto;
+  padding-bottom:calc(68px + var(--safe-bot));
+}
+.panel.on{
+  opacity:1;pointer-events:all;
+}
+
+/* Alarms panel — special: uses flex column */
+#panel-alarms{
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  padding-bottom:0;
+}
 
 /* Day navigator */
-#day-nav{background:#fff;border-bottom:1px solid var(--border);padding:12px 16px;display:flex;flex-direction:column;gap:10px;flex-shrink:0}
-#day-header{display:flex;align-items:center;justify-content:space-between}
-.day-arrow{width:36px;height:36px;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#day-nav{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:12px 16px;display:flex;flex-direction:column;gap:10px;
+  flex-shrink:0;
+}
+#day-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.day-arrow{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid var(--border2);background:transparent;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
 .day-arrow:active{background:var(--bg)}
 .day-arrow svg{width:18px;height:18px;stroke:var(--dim);stroke-width:2;fill:none}
-#day-label{text-align:center;flex:1}
-#day-label .day-name{font-size:17px;font-weight:700;color:var(--text)}
-#day-label .day-date{font-size:12px;color:var(--hint);margin-top:1px}
+#day-label{text-align:center;flex:1;min-width:0}
+.day-name{font-size:16px;font-weight:700;color:var(--text)}
+.day-year{font-size:12px;color:var(--hint);margin-top:1px}
 #day-label.is-today .day-name{color:var(--brand)}
 
-/* Mini calendar strip */
+/* Calendar strip */
 #cal-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none}
 #cal-strip::-webkit-scrollbar{display:none}
-.cal-day{min-width:42px;height:54px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;gap:2px;border:1.5px solid transparent}
+.cal-day{
+  min-width:42px;height:56px;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;gap:2px;border:1.5px solid transparent;
+}
 .cal-day .wd{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--hint)}
 .cal-day .dm{font-size:16px;font-weight:600;color:var(--text)}
 .cal-day .dot{width:5px;height:5px;border-radius:50%;background:var(--brand);opacity:0}
 .cal-day.has-alarms .dot{opacity:1}
-.cal-day.is-today{border-color:var(--brand);background:var(--brand-light)}
-.cal-day.is-today .wd{color:var(--brand)}
-.cal-day.is-today .dm{color:var(--brand)}
+.cal-day.is-today{border-color:var(--brand);background:var(--blue-bg)}
+.cal-day.is-today .wd,.cal-day.is-today .dm{color:var(--brand)}
 .cal-day.selected{background:var(--brand);border-color:var(--brand)}
-.cal-day.selected .wd{color:rgba(255,255,255,.8)}
-.cal-day.selected .dm{color:#fff}
-.cal-day.selected .dot{background:#fff}
+.cal-day.selected .wd,.cal-day.selected .dm{color:#fff}
+.cal-day.selected .dot{background:#fff;opacity:1}
 
-/* Swipeable area */
+/* Scroll area inside alarms */
 #swipe-area{flex:1;overflow:hidden;position:relative}
-#alarms-scroll{height:100%;overflow-y:auto;padding:12px 0 80px}
+#alarms-scroll{
+  height:100%;overflow-y:auto;
+  padding:12px 0 calc(80px + var(--safe-bot));
+}
 
-/* Alarm card */
-.acard{margin:0 12px 10px;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+/* Alarm cards */
+.acard{margin:0 12px 10px;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:box-shadow .15s}
+.acard:active{box-shadow:0 2px 8px rgba(0,120,212,.12)}
 .amain{display:flex;align-items:center;gap:12px;padding:14px 14px 10px}
-.atime{font-size:32px;font-weight:200;line-height:1;color:var(--text);min-width:70px}
+.atime-block{min-width:68px}
+.atime{font-size:30px;font-weight:200;line-height:1;color:var(--text)}
+.atime-ampm{font-size:11px;color:var(--hint);margin-top:2px}
 .abody{flex:1;min-width:0}
 .aname{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aphone{font-size:12px;color:var(--dim);margin-top:1px}
 .anote{font-size:12px;color:var(--brand);margin-top:3px;font-style:italic}
-.afoot{display:flex;align-items:center;justify-content:space-between;padding:8px 14px 10px;border-top:1px solid var(--border);background:var(--card2)}
+.afoot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px 10px;border-top:1px solid var(--border);background:var(--card2);
+}
 .aactions{display:flex;flex-direction:column;align-items:center;gap:8px}
-.tog{width:46px;height:26px;border-radius:13px;border:1.5px solid var(--border2);cursor:pointer;position:relative;transition:background .25s;flex-shrink:0;background:var(--bg)}
+.tog{
+  width:46px;height:26px;border-radius:13px;
+  border:1.5px solid var(--border2);cursor:pointer;position:relative;
+  transition:background .2s,border-color .2s;flex-shrink:0;background:var(--bg);
+}
 .tog.on{background:var(--brand);border-color:var(--brand)}
-.tog::after{content:'';position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .25s;left:2px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tog::after{
+  content:'';position:absolute;top:2px;
+  width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:left .2s;left:2px;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
 .tog.on::after{left:22px}
+
+/* Badges */
 .badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
 .b-ok{background:var(--green-bg);color:var(--green)}
 .b-wait{background:var(--amber-bg);color:var(--amber)}
-.b-ring{background:var(--brand-light);color:var(--brand);animation:pulse 1s infinite}
+.b-ring{background:var(--blue-bg);color:var(--brand);animation:pulse 1s infinite}
 .b-esc{background:var(--red-bg);color:var(--red);animation:pulse .7s infinite}
 .b-done{background:var(--bg);color:var(--hint);border:1px solid var(--border)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .cd{font-size:13px;color:var(--brand);font-weight:600}
-.bmini{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--border2);border-radius:8px;color:var(--dim);font-size:12px;padding:5px 10px;cursor:pointer}
+
+/* Buttons */
+.bmini{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#fff;border:1px solid var(--border2);border-radius:8px;
+  color:var(--dim);font-size:12px;padding:5px 10px;cursor:pointer;
+}
 .bmini:active{background:var(--bg)}
 .bmini.danger{color:var(--red);border-color:rgba(200,41,30,.25);background:var(--red-bg)}
-.bmini.brand{color:var(--brand);border-color:rgba(200,95,10,.3);background:var(--brand-light)}
+.bmini.brand{color:var(--brand);border-color:rgba(0,120,212,.3);background:var(--blue-bg)}
 
-/* Empty */
+/* Empty state */
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 32px;gap:10px;text-align:center}
 .empty svg{width:48px;height:48px;stroke:var(--border2);stroke-width:1.2;fill:none}
 .empty p{font-size:15px;color:var(--dim);font-weight:500}
 .empty small{font-size:13px;color:var(--hint)}
 
-/* Bottom nav */
-#nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bot);z-index:50}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0;cursor:pointer;color:var(--hint);font-size:10px;gap:3px;user-select:none}
-.ni svg{width:22px;height:22px;stroke:currentColor;stroke-width:1.8;fill:none}
-.ni.on{color:var(--brand)}
-
-/* Panels */
-.panel{display:none;height:100%;overflow-y:auto;padding-bottom:calc(68px + var(--safe-bot))}.panel.on{display:block}
-#panel-alarms{display:flex;flex-direction:column;height:100%;overflow:hidden}
-#panel-alarms.on{display:flex}
+/* Section labels */
+.slabel{padding:18px 16px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--hint)}
 
 /* Forms */
-.slabel{padding:18px 16px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--hint)}
 .fsec{padding:12px 16px}
 .fcard{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
 .frow{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);gap:12px}
 .frow:last-child{border-bottom:none}
 .flabel{font-size:14px;color:var(--dim);min-width:80px;flex-shrink:0}
-.frow input,.frow select{flex:1;background:transparent;border:none;color:var(--text);font-size:14px;text-align:right;outline:none;-webkit-appearance:none;appearance:none;min-width:0}
+.frow input,.frow select{
+  flex:1;background:transparent;border:none;color:var(--text);
+  font-size:14px;text-align:right;outline:none;
+  -webkit-appearance:none;appearance:none;min-width:0;
+}
 .frow input::placeholder{color:var(--hint)}
-.bsubmit{display:block;margin:14px 16px;width:calc(100% - 32px);padding:15px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
-.bsubmit:active{opacity:.88}
-.bsubmit:disabled{opacity:.5}
+.bsubmit{
+  display:block;margin:14px 16px;width:calc(100% - 32px);padding:15px;
+  background:var(--brand);color:#fff;border:none;border-radius:12px;
+  font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.2px;
+}
+.bsubmit:active{background:var(--brand-dark)}
+.bsubmit:disabled{opacity:.5;cursor:not-allowed}
+
+/* Driver rows */
 .drow{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border)}
 .drow:last-child{border-bottom:none}
-.avatar{width:40px;height:40px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--blue-bg);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .dinfo{flex:1;min-width:0}
-.dname{font-size:15px;font-weight:600}
+.dname{font-size:15px;font-weight:600;color:var(--text)}
 .dphone{font-size:12px;color:var(--dim);margin-top:1px}
+
+/* Settings rows */
 .srow{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);gap:12px}
 .srow:last-child{border-bottom:none}
-.slbl{font-size:14px;font-weight:500}
+.slbl{font-size:14px;font-weight:500;color:var(--text)}
 .ssub{font-size:11px;color:var(--hint);margin-top:2px}
 .srow input{flex:1;background:transparent;border:none;color:var(--brand);font-size:14px;text-align:right;outline:none;min-width:0}
 
+/* Bottom nav */
+#nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#fff;border-top:1px solid var(--border);
+  display:flex;padding-bottom:var(--safe-bot);z-index:100;
+}
+.ni{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:10px 0;cursor:pointer;
+  color:var(--hint);font-size:10px;gap:3px;user-select:none;
+  transition:color .15s;
+}
+.ni svg{width:22px;height:22px;stroke:currentColor;stroke-width:1.8;fill:none}
+.ni.on{color:var(--brand)}
+.ni-indicator{
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:20px;height:2px;background:var(--brand);border-radius:2px 2px 0 0;
+  opacity:0;transition:opacity .15s;
+}
+.ni{position:relative}
+.ni.on .ni-indicator{opacity:1}
+
 /* FAB */
-#fab{position:fixed;right:18px;bottom:calc(68px + var(--safe-bot) + 14px);width:56px;height:56px;border-radius:28px;background:var(--brand);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(200,95,10,.4);z-index:40}
+#fab{
+  position:fixed;right:18px;bottom:calc(68px + var(--safe-bot) + 14px);
+  width:56px;height:56px;border-radius:28px;
+  background:var(--brand);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,120,212,.4);z-index:90;
+  transition:transform .15s,box-shadow .15s;
+}
+#fab:active{transform:scale(.93);box-shadow:0 2px 8px rgba(0,120,212,.3)}
 #fab svg{width:26px;height:26px;stroke:#fff;stroke-width:2.5;fill:none}
-#fab:active{transform:scale(.94)}
 
 /* Toast */
-#toast{position:fixed;top:calc(var(--safe-top) + 70px);left:50%;transform:translateX(-50%);background:var(--text);color:#fff;border-radius:12px;padding:10px 18px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw}
+#toast{
+  position:fixed;top:calc(var(--safe-top) + 70px);left:50%;
+  transform:translateX(-50%);
+  background:rgba(26,35,50,.92);color:#fff;
+  border-radius:12px;padding:10px 18px;font-size:14px;
+  z-index:200;opacity:0;transition:opacity .25s;
+  pointer-events:none;white-space:nowrap;max-width:90vw;
+}
 #toast.show{opacity:1}
-
-/* Swipe animation */
-.slide-left{animation:slideLeft .2s ease forwards}
-.slide-right{animation:slideRight .2s ease forwards}
-@keyframes slideLeft{from{transform:translateX(0);opacity:1}to{transform:translateX(-30px);opacity:0}}
-@keyframes slideRight{from{transform:translateX(0);opacity:1}to{transform:translateX(30px);opacity:0}}
 </style>
 </head>
 <body>
 <div id="app">
 
+  <!-- Topbar -->
   <div id="topbar">
     <div style="display:flex;align-items:center">
-      <div class="logo-sq">E</div>
+      <div class="logo-sq">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 15.5"/></svg>
+      </div>
       <div id="topbar-info">
         <div id="topbar-title">Erika Sveglie</div>
         <div id="topbar-sub">Erika Bus S.r.l.</div>
@@ -173,39 +278,39 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div id="clock">--:--:--</div>
   </div>
 
+  <!-- Content -->
   <div id="content">
 
-    <!-- SVEGLIE -->
+    <!-- PANEL: Sveglie -->
     <div id="panel-alarms" class="panel on">
-
       <div id="day-nav">
         <div id="day-header">
-          <button class="day-arrow" id="btn-prev">
+          <button class="day-arrow" id="btn-prev" aria-label="Giorno precedente">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <div id="day-label">
             <div class="day-name" id="day-name-lbl">—</div>
-            <div class="day-date" id="day-date-lbl">—</div>
+            <div class="day-year" id="day-year-lbl">—</div>
           </div>
-          <button class="day-arrow" id="btn-next">
+          <button class="day-arrow" id="btn-next" aria-label="Giorno successivo">
             <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
         <div id="cal-strip"></div>
       </div>
-
       <div id="swipe-area">
         <div id="alarms-scroll">
           <div id="alarms-list"></div>
         </div>
       </div>
-
     </div>
 
-    <!-- AUTISTI -->
+    <!-- PANEL: Autisti -->
     <div id="panel-drivers" class="panel">
       <div class="slabel">Autisti registrati</div>
-      <div class="fsec" style="padding-bottom:0"><div class="fcard" id="drivers-list"></div></div>
+      <div class="fsec" style="padding-bottom:0">
+        <div class="fcard" id="drivers-list"></div>
+      </div>
       <div class="slabel">Aggiungi autista</div>
       <div class="fsec">
         <div class="fcard">
@@ -216,7 +321,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
 
-    <!-- NUOVA SVEGLIA -->
+    <!-- PANEL: Nuova sveglia -->
     <div id="panel-add" class="panel">
       <div class="slabel">Nuova sveglia</div>
       <div class="fsec">
@@ -237,7 +342,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
 
-    <!-- IMPOSTAZIONI -->
+    <!-- PANEL: Impostazioni -->
     <div id="panel-settings" class="panel">
       <div class="slabel">Escalation</div>
       <div class="fsec">
@@ -247,7 +352,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
             <input type="tel" id="s-office-phone" placeholder="+39 06 xxxxxxxx">
           </div>
           <div class="srow">
-            <div><div class="slbl">SMS ufficio</div><div class="ssub">riceve SMS di allerta</div></div>
+            <div><div class="slbl">SMS ufficio</div><div class="ssub">riceve allerta escalation</div></div>
             <input type="tel" id="s-office-sms" placeholder="+39 333 xxxxxxx">
           </div>
         </div>
@@ -268,24 +373,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
 
-  </div>
+  </div><!-- /content -->
 
+  <!-- FAB -->
   <button id="fab" aria-label="Nuova sveglia">
     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 
+  <!-- Bottom nav -->
   <nav id="nav">
     <div class="ni on" data-panel="panel-alarms">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/><line x1="7" y1="2" x2="5" y2="4"/><line x1="17" y1="2" x2="19" y2="4"/></svg>
       <span>Sveglie</span>
+      <div class="ni-indicator"></div>
     </div>
     <div class="ni" data-panel="panel-drivers">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Autisti</span>
+      <div class="ni-indicator"></div>
     </div>
     <div class="ni" data-panel="panel-settings">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Impostazioni</span>
+      <div class="ni-indicator"></div>
     </div>
   </nav>
 
@@ -297,16 +407,18 @@ const sb = supabase.createClient(window.ERIKA_CONFIG.SUPABASE_URL, window.ERIKA_
 
 let drivers = [], alarms = [], deferredInstall = null;
 let selectedDate = todayStr();
+let currentPanel = 'panel-alarms';
 
-const DAYS_IT  = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+const DAYS_IT   = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
 const MONTHS_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
+// ── Utils ──────────────────────────────────────────
 function pad(n){ return String(n).padStart(2,'0'); }
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
-function dateFromStr(s){ const[y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
-function strFromDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function addDays(dateStr, n){ const d=new Date(dateStr+'T12:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function initials(n){ return (n||'').split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
 function formatDate(s){ if(!s) return ''; const[y,m,d]=s.split('-'); return d+'/'+m+'/'+y; }
+function dateObj(s){ return new Date(s+'T12:00:00'); }
 
 function toast(msg,dur){
   const t=document.getElementById('toast');
@@ -314,99 +426,110 @@ function toast(msg,dur){
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),dur||2500);
 }
 
-// ── Clock ──
+// ── Clock ──────────────────────────────────────────
 function updateClock(){ const d=new Date(); document.getElementById('clock').textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
 setInterval(updateClock,1000); updateClock();
 
-// ── Navigation ──
+// ── Navigation with fade ───────────────────────────
 function showPanel(id){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===id));
-  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on',n.dataset.panel===id));
-  document.getElementById('fab').style.display=(id==='panel-add')?'none':'flex';
-  if(id==='panel-add'){ refreshDriverSelect(); document.getElementById('a-date').value=selectedDate; }
+  if(id === currentPanel) return;
+  const prev = document.getElementById(currentPanel);
+  const next = document.getElementById(id);
+  if(!prev || !next) return;
+
+  // Fade out current
+  prev.classList.remove('on');
+
+  // Fade in next after tiny delay so transition is visible
+  requestAnimationFrame(()=>{
+    next.classList.add('on');
+  });
+
+  currentPanel = id;
+
+  // Update nav
+  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on', n.dataset.panel===id));
+
+  // FAB visibility
+  document.getElementById('fab').style.display = (id==='panel-add') ? 'none' : 'flex';
+
+  // Prepare add form
+  if(id==='panel-add'){
+    refreshDriverSelect();
+    document.getElementById('a-date').value = selectedDate;
+  }
 }
+
 document.querySelectorAll('.ni').forEach(n=>n.addEventListener('click',()=>showPanel(n.dataset.panel)));
 document.getElementById('fab').addEventListener('click',()=>showPanel('panel-add'));
 
-// ── Day navigator ──
-function setSelectedDate(dateStr, direction){
+// ── Day navigation ─────────────────────────────────
+function setSelectedDate(dateStr){
   selectedDate = dateStr;
   renderDayHeader();
   renderCalStrip();
-  renderAlarms(direction);
+  renderAlarms();
 }
 
 function renderDayHeader(){
-  const d = dateFromStr(selectedDate);
+  const d = dateObj(selectedDate);
   const today = todayStr();
-  const lbl = document.getElementById('day-label');
-  const isToday = selectedDate === today;
-  const isTomorrow = selectedDate === strFromDate(new Date(dateFromStr(today).getTime()+86400000));
-  let name = DAYS_IT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS_IT[d.getMonth()];
-  if(isToday) name = 'Oggi – ' + d.getDate() + ' ' + MONTHS_IT[d.getMonth()];
-  if(isTomorrow) name = 'Domani – ' + d.getDate() + ' ' + MONTHS_IT[d.getMonth()];
+  const tomorrow = addDays(today,1);
+  const isToday = selectedDate===today;
+  const isTomorrow = selectedDate===tomorrow;
+  let name;
+  if(isToday)     name = 'Oggi · '+d.getDate()+' '+MONTHS_IT[d.getMonth()];
+  else if(isTomorrow) name = 'Domani · '+d.getDate()+' '+MONTHS_IT[d.getMonth()];
+  else            name = DAYS_IT[d.getDay()]+' '+d.getDate()+' '+MONTHS_IT[d.getMonth()];
   document.getElementById('day-name-lbl').textContent = name;
-  document.getElementById('day-date-lbl').textContent = d.getFullYear();
-  lbl.classList.toggle('is-today', isToday);
+  document.getElementById('day-year-lbl').textContent = d.getFullYear();
+  document.getElementById('day-label').classList.toggle('is-today', isToday);
 }
 
 function renderCalStrip(){
   const strip = document.getElementById('cal-strip');
-  const today = dateFromStr(todayStr());
-  const sel   = dateFromStr(selectedDate);
-  // Mostra 30 giorni da -7 a +23
-  const days = [];
-  for(let i=-7; i<=23; i++){
-    const d = new Date(today.getTime() + i*86400000);
-    days.push(d);
-  }
+  const today = todayStr();
   const alarmDates = new Set(alarms.map(a=>a.alarm_date));
-  strip.innerHTML = days.map(d=>{
-    const ds = strFromDate(d);
-    const isToday = ds === todayStr();
-    const isSel   = ds === selectedDate;
-    const hasAlarms = alarmDates.has(ds);
-    return `<div class="cal-day${isToday?' is-today':''}${isSel?' selected':''}${hasAlarms?' has-alarms':''}" onclick="setSelectedDate('${ds}')">
+  const days = [];
+  for(let i=-7; i<=23; i++) days.push(addDays(today,i));
+
+  strip.innerHTML = days.map(ds=>{
+    const d = dateObj(ds);
+    const isToday = ds===today;
+    const isSel   = ds===selectedDate;
+    const hasDot  = alarmDates.has(ds);
+    let cls = 'cal-day';
+    if(isToday&&!isSel) cls+=' is-today';
+    if(isSel) cls+=' selected';
+    if(hasDot) cls+=' has-alarms';
+    return `<div class="${cls}" onclick="setSelectedDate('${ds}')">
       <span class="wd">${DAYS_IT[d.getDay()]}</span>
       <span class="dm">${d.getDate()}</span>
       <span class="dot"></span>
     </div>`;
   }).join('');
-  // Scroll to selected
+
+  // Scroll selected into view
   setTimeout(()=>{
     const sel = strip.querySelector('.selected');
     if(sel) sel.scrollIntoView({inline:'center',behavior:'smooth'});
   },50);
 }
 
-document.getElementById('btn-prev').addEventListener('click',()=>{
-  const d = dateFromStr(selectedDate);
-  d.setDate(d.getDate()-1);
-  setSelectedDate(strFromDate(d),'right');
-});
-document.getElementById('btn-next').addEventListener('click',()=>{
-  const d = dateFromStr(selectedDate);
-  d.setDate(d.getDate()+1);
-  setSelectedDate(strFromDate(d),'left');
-});
+document.getElementById('btn-prev').addEventListener('click',()=>setSelectedDate(addDays(selectedDate,-1)));
+document.getElementById('btn-next').addEventListener('click',()=>setSelectedDate(addDays(selectedDate,1)));
 
-// ── Swipe ──
-let touchStartX=0, touchStartY=0;
-document.getElementById('swipe-area').addEventListener('touchstart',e=>{
-  touchStartX=e.touches[0].clientX;
-  touchStartY=e.touches[0].clientY;
-},{passive:true});
+// Touch swipe
+let tx=0, ty=0;
+document.getElementById('swipe-area').addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
 document.getElementById('swipe-area').addEventListener('touchend',e=>{
-  const dx=e.changedTouches[0].clientX-touchStartX;
-  const dy=e.changedTouches[0].clientY-touchStartY;
-  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
-    const d=dateFromStr(selectedDate);
-    d.setDate(d.getDate()+(dx<0?1:-1));
-    setSelectedDate(strFromDate(d),dx<0?'left':'right');
-  }
+  const dx=e.changedTouches[0].clientX-tx;
+  const dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)
+    setSelectedDate(addDays(selectedDate, dx<0?1:-1));
 },{passive:true});
 
-// ── Render alarms ──
+// ── Render alarms ──────────────────────────────────
 function getCountdown(dateStr,timeStr){
   const now=new Date(), then=new Date(dateStr+'T'+timeStr);
   const s=Math.floor((then-now)/1000);
@@ -418,7 +541,11 @@ function getCountdown(dateStr,timeStr){
 
 function alarmBadge(alarm){
   if(!alarm.enabled) return '<span class="badge b-done">Disattivata</span>';
-  const map={ringing:'<span class="badge b-ring">📞 Chiamando...</span>',escalating:'<span class="badge b-esc">🚨 Escalation</span>',done:'<span class="badge b-done">✅ Completata</span>'};
+  const map={
+    ringing:'<span class="badge b-ring">📞 Chiamando...</span>',
+    escalating:'<span class="badge b-esc">🚨 Escalation</span>',
+    done:'<span class="badge b-done">✅ Completata</span>'
+  };
   if(map[alarm.state]) return map[alarm.state];
   const cd=getCountdown(alarm.alarm_date,alarm.alarm_time);
   return cd?'<span class="badge b-ok">⏰ Attiva</span>':'<span class="badge b-wait">⏳ Scaduta</span>';
@@ -430,16 +557,18 @@ function alarmCard(alarm){
   const cd=(alarm.state==='pending'&&alarm.enabled)?getCountdown(alarm.alarm_date,alarm.alarm_time):null;
   return `<div class="acard">
     <div class="amain">
-      <div class="atime">${alarm.alarm_time.slice(0,5)}</div>
+      <div class="atime-block">
+        <div class="atime">${alarm.alarm_time.slice(0,5)}</div>
+      </div>
       <div class="abody">
         <div class="aname">${drv.name}</div>
         <div class="aphone">${drv.phone}</div>
         ${alarm.note?`<div class="anote">${alarm.note}</div>`:''}
       </div>
       <div class="aactions">
-        <button class="tog ${alarm.enabled?'on':''}" onclick="toggleAlarm('${alarm.id}',${alarm.enabled})"></button>
-        <button class="bmini danger" onclick="deleteAlarm('${alarm.id}')">
-          <svg width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" viewBox="0 0 24 24">
+        <button class="tog ${alarm.enabled?'on':''}" onclick="toggleAlarm('${alarm.id}',${alarm.enabled})" aria-label="toggle"></button>
+        <button class="bmini danger" onclick="deleteAlarm('${alarm.id}')" aria-label="Elimina">
+          <svg width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" viewBox="0 0 24 24">
             <polyline points="3 6 5 6 21 6"/>
             <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
             <path d="M10 11v6M14 11v6"/>
@@ -457,10 +586,9 @@ function alarmCard(alarm){
   </div>`;
 }
 
-function renderAlarms(direction){
+function renderAlarms(){
   const dayAlarms = alarms.filter(a=>a.alarm_date===selectedDate).sort((a,b)=>a.alarm_time.localeCompare(b.alarm_time));
-  const list = document.getElementById('alarms-list');
-  list.innerHTML = dayAlarms.length
+  document.getElementById('alarms-list').innerHTML = dayAlarms.length
     ? dayAlarms.map(alarmCard).join('')
     : `<div class="empty">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/><line x1="7" y1="2" x2="5" y2="4"/><line x1="17" y1="2" x2="19" y2="4"/></svg>
@@ -468,31 +596,32 @@ function renderAlarms(direction){
       </div>`;
 }
 
-// ── Render drivers ──
+// ── Render drivers ─────────────────────────────────
 function renderDrivers(){
   const dl=document.getElementById('drivers-list');
-  dl.innerHTML=drivers.length?drivers.map(d=>`
-    <div class="drow">
-      <div class="avatar">${initials(d.name)}</div>
-      <div class="dinfo"><div class="dname">${d.name}</div><div class="dphone">${d.phone}</div></div>
-      <button class="bmini danger" onclick="deleteDriver('${d.id}')">
-        <svg width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" viewBox="0 0 24 24">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-          <path d="M10 11v6M14 11v6"/>
-        </svg>
-      </button>
-    </div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--hint);font-size:14px">Nessun autista registrato</div>';
+  dl.innerHTML = drivers.length
+    ? drivers.map(d=>`<div class="drow">
+        <div class="avatar">${initials(d.name)}</div>
+        <div class="dinfo"><div class="dname">${d.name}</div><div class="dphone">${d.phone}</div></div>
+        <button class="bmini danger" onclick="deleteDriver('${d.id}')" aria-label="Elimina">
+          <svg width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+          </svg>
+        </button>
+      </div>`).join('')
+    : '<div style="padding:20px;text-align:center;color:var(--hint);font-size:14px">Nessun autista registrato</div>';
 }
 
 function refreshDriverSelect(){
   const sel=document.getElementById('a-driver');
-  sel.innerHTML=drivers.length
-    ?'<option value="">Seleziona autista...</option>'+drivers.map(d=>`<option value="${d.id}">${d.name} · ${d.phone}</option>`).join('')
-    :'<option value="">— Prima aggiungi un autista —</option>';
+  sel.innerHTML = drivers.length
+    ? '<option value="">Seleziona autista...</option>'+drivers.map(d=>`<option value="${d.id}">${d.name} · ${d.phone}</option>`).join('')
+    : '<option value="">— Prima aggiungi un autista —</option>';
 }
 
-// ── Load data ──
+// ── Load data ──────────────────────────────────────
 async function loadDrivers(){
   const{data}=await sb.from('drivers').select('*').order('name');
   drivers=data||[]; renderDrivers(); refreshDriverSelect();
@@ -513,7 +642,7 @@ async function loadSettings(){
   document.getElementById('s-office-sms').value=s.office_sms||'';
 }
 
-// ── CRUD drivers ──
+// ── CRUD drivers ───────────────────────────────────
 document.getElementById('btn-add-driver').addEventListener('click', async function(){
   const name=document.getElementById('d-name').value.trim();
   const phone=document.getElementById('d-phone').value.trim().replace(/\s/g,'');
@@ -535,7 +664,7 @@ async function deleteDriver(id){
   await loadDrivers(); await loadAlarms();
 }
 
-// ── CRUD alarms ──
+// ── CRUD alarms ────────────────────────────────────
 document.getElementById('btn-save-alarm').addEventListener('click', async function(){
   const driverId=document.getElementById('a-driver').value;
   const time=document.getElementById('a-time').value;
@@ -546,7 +675,11 @@ document.getElementById('btn-save-alarm').addEventListener('click', async functi
   if(!time){toast('⚠️ Inserisci l\'orario');return;}
   if(!date){toast('⚠️ Inserisci la data');return;}
   this.disabled=true;
-  const{error}=await sb.from('alarms').insert({driver_id:driverId,alarm_date:date,alarm_time:time+':00',note,escalation_minutes:esc,enabled:true,state:'pending'});
+  const{error}=await sb.from('alarms').insert({
+    driver_id:driverId, alarm_date:date,
+    alarm_time:time+':00', note,
+    escalation_minutes:esc, enabled:true, state:'pending'
+  });
   this.disabled=false;
   if(error){toast('❌ '+error.message);return;}
   document.getElementById('a-note').value='';
@@ -566,6 +699,7 @@ async function deleteAlarm(id){
   if(!confirm('Eliminare questa sveglia?')) return;
   await sb.from('alarms').delete().eq('id',id);
   await loadAlarms();
+  toast('🗑 Sveglia eliminata');
 }
 
 async function dismissAlarm(id){
@@ -574,7 +708,7 @@ async function dismissAlarm(id){
   toast('Sveglia ignorata');
 }
 
-// ── Settings ──
+// ── Settings ───────────────────────────────────────
 document.getElementById('btn-save-settings').addEventListener('click', async function(){
   const phone=document.getElementById('s-office-phone').value.trim().replace(/\s/g,'');
   const sms=document.getElementById('s-office-sms').value.trim().replace(/\s/g,'');
@@ -582,7 +716,7 @@ document.getElementById('btn-save-settings').addEventListener('click', async fun
   toast('✅ Impostazioni salvate');
 });
 
-// ── Realtime ──
+// ── Realtime ───────────────────────────────────────
 function subscribeRealtime(){
   sb.channel('erika-rt')
     .on('postgres_changes',{event:'*',schema:'public',table:'alarms'},()=>loadAlarms())
@@ -590,10 +724,7 @@ function subscribeRealtime(){
     .subscribe();
 }
 
-// ── Notifications ──
-function notify(title,body){
-  if(Notification.permission==='granted') new Notification(title,{body,icon:'icon-192.png',requireInteraction:true});
-}
+// ── Notifications ──────────────────────────────────
 document.getElementById('btn-notif').addEventListener('click', async function(){
   const r=await Notification.requestPermission();
   if(r==='granted'){this.textContent='✓ Abilitate';this.disabled=true;toast('✅ Notifiche abilitate');}
@@ -604,7 +735,7 @@ function refreshNotifBtn(){
   if(Notification.permission==='granted'){btn.textContent='✓ Abilitate';btn.disabled=true;}
 }
 
-// ── PWA ──
+// ── PWA ────────────────────────────────────────────
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;});
 document.getElementById('row-install').addEventListener('click',()=>{
   if(deferredInstall) deferredInstall.prompt();
@@ -612,7 +743,7 @@ document.getElementById('row-install').addEventListener('click',()=>{
 });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
-// ── Init ──
+// ── Init ───────────────────────────────────────────
 document.getElementById('a-date').value = todayStr();
 renderDayHeader();
 
